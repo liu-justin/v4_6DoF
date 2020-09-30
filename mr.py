@@ -20,6 +20,7 @@ Optional library: matplotlib
 '''
 
 import numpy as np
+import math
 
 '''
 *** BASIC HELPER FUNCTIONS ***
@@ -50,6 +51,28 @@ def Normalize(V):
 '''
 *** CHAPTER 3: RIGID-BODY MOTIONS ***
 '''
+
+def RollPitchYawToRot(r, p, y):
+    """Creates a rotation matrix fro roll-pitch-yaw angles
+    Example Input:
+        roll = np.pi/4
+        pitch = np.pi/6
+        yaw = np.pi/3
+    Output:
+        np.array([[0.6123, -0.0474,  0.7891],
+                  [0.6123,  0.6597, -0.4356],
+                  [  -0.5,    0.75,  0.433]])
+    """
+    def c(a):
+        return math.cos(a)
+
+    def s(a):
+        return math.sin(a)
+
+    return np.array([[c(r)*c(p), c(r)*s(p)*s(y) - s(r)*c(y), c(r)*s(p)*c(y) + s(r)*s(y)],
+                     [s(r)*c(p), s(r)*s(p)*s(y) + c(r)*c(y), s(r)*s(p)*c(y) - c(r)*s(y)],
+                     [  -1*s(p),                  c(p)*s(y),                  c(p)*c(y)]])
+
 
 def RotInv(R):
     """Inverts a rotation matrix
