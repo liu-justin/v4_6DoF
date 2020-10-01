@@ -55,9 +55,9 @@ def Normalize(V):
 def RollPitchYawToRot(r, p, y):
     """Creates a rotation matrix fro roll-pitch-yaw angles
     Example Input:
-        roll = np.pi/4
-        pitch = np.pi/6
-        yaw = np.pi/3
+        roll = np.pi/4 (about the z-axis)
+        pitch = np.pi/6 (about the y-axis)
+        yaw = np.pi/3 (about the x-axis)
     Output:
         np.array([[0.6123, -0.0474,  0.7891],
                   [0.6123,  0.6597, -0.4356],
