@@ -32,9 +32,9 @@ for joint in reversed(joint_list): # need to skip type fixed
 
     current_omega = [float(n) for n in joint.axis["xyz"].split()]
     current_omega_skewed = mr.VecToso3(current_omega)
-    # (R_ee, p_ee) = mr.TransToRp(mr.TransInv(T_ee))
-    (R_ee, p_ee) = mr.TransToRp(T_ee)
-    current_v = np.dot(current_omega_skewed, p_ee)
+    (R_ee, p_ee) = mr.TransToRp(mr.TransInv(T_ee))
+    # (R_ee, p_ee) = mr.TransToRp(T_ee)
+    current_v = -1*np.dot(current_omega_skewed, p_ee)
 
     body_axis = np.r_[current_omega, current_v]
     print(body_axis)
