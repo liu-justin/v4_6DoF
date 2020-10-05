@@ -60,4 +60,6 @@ Blist = np.array([[0, 0, -1, 2, 0,   0],
                           [0, 0,  1, 0, 0, 0.1]]).T
 thetalist = np.array([np.pi / 2.0, 3, np.pi])
 
-# print(np.round(mr.FKinBody(M,Blist, thetalist),5))
+# inverse dynamics
+# need Glist, or spatial inertai matrix list
+#   6x6 matrix, top left corner is 3x3 rotational inertia matrix, bottom right is mass of link * identity matrix
