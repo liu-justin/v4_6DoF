@@ -44,11 +44,12 @@ for joint in reversed(joint_list): # need to skip type fixed
 # alright, DH parameters use frames, and PoE only needs home and EE frames
 # however, URDF has all frames b/c it needs them for mass crap in ch 8
 # for FK, can just use home frame, ee frame, and calculate the body axes from the frames
-angleList = np.array([0,-1*np.pi/2,np.pi/2,0,-1*np.pi/2,0])
+# angleList = np.array([0,-1*np.pi/2,np.pi/2,0,-1*np.pi/2,0])
+angleList = np.array([0,-1*np.pi/2,np.pi/2,0,0,0])
 bodyList = np.array(bodyList).T
 
 final = mr.FKinBody(T_ee, bodyList, angleList)
-print(np.round(T_ee, 5))
+# print(np.round(T_ee, 5))
 print(np.round(final,5))
 
 M = np.array([[-1, 0,  0, 0],
@@ -63,3 +64,30 @@ thetalist = np.array([np.pi / 2.0, 3, np.pi])
 # inverse dynamics
 # need Glist, or spatial inertai matrix list
 #   6x6 matrix, top left corner is 3x3 rotational inertia matrix, bottom right is mass of link * identity matrix
+
+print(obj.robot.link[2:-2])
+
+for link in obj.robot.link[2:-2]: # need to skip type fixed
+    mass = float(link.inertial.mass["value"])
+
+    inertia = [float(n) for n in (vars(link.inertial.inertia)["_attributes"].values())]
+    print(inertia)
+    print(vars(link.inertial.inertia)["_attributes"].keys())
+
+    Ib = np.array([[inertia[0], inertia[1], inertia[2]],
+                   [inertia[1], inertia[3], inertia[4]],
+                   [inertia[2], inertia[4], inertia[5]]])
+
+    mI = mass*np.identity(3)
+
+    zeros = np.zeros((3,3))
+    print(zeros)
+    print(Ib)
+    print(mI)
+
+    Gi = np.c_[np.r_[Ib, zeros], np.r_[zeros,mI]]
+
+    print(np.round(Gi,5))
+
+
+    p = np.array([float(n) for n in link.inertial.inertia.split()])
