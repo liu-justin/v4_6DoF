@@ -99,3 +99,14 @@ for link in obj.robot.link[2:-2]: # need to skip type fixed
     Glist.append(Gi)
 
     print(f"Gi:\n{np.round(Gi,5)}")
+
+
+# says each reference frame {i} is attached to the CoM of each link i,i=1...n
+# base frame is denoted {0}
+# frame at end effector denoted {n+1} (i think this is link6)
+
+# two ways to do things
+# use the link CoM, and convert screw axes, forces from referenced joint to referenced link
+# or, use the joint CoM, and use the bottom inertial values in the URDF
+
+# i will probably try both to see if i get the same result
