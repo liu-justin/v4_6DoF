@@ -64,30 +64,38 @@ thetalist = np.array([np.pi / 2.0, 3, np.pi])
 # inverse dynamics
 # need Glist, or spatial inertai matrix list
 #   6x6 matrix, top left corner is 3x3 rotational inertia matrix, bottom right is mass of link * identity matrix
-
-print(obj.robot.link[2:-2])
+Glist = []
 
 for link in obj.robot.link[2:-2]: # need to skip type fixed
     mass = float(link.inertial.mass["value"])
 
-    inertia = [float(n) for n in (vars(link.inertial.inertia)["_attributes"].values())]
-    print(inertia)
-    print(vars(link.inertial.inertia)["_attributes"].keys())
+    # ix = [float(n) for n in link.inertial.origin["ix"].split()]
+    # iy = [float(n) for n in link.inertial.origin["iy"].split()]
+    # iz = [float(n) for n in link.inertial.origin["iz"].split()]
+    # principle_axes = np.c_[ix,iy,iz]
 
+    CoM_xyz = [float(n) for n in link.inertial.origin["xyz"].split()]
+
+    inertia = [float(n) for n in (vars(link.inertial.inertia)["_attributes"].values())]
+    
     Ib = np.array([[inertia[0], inertia[1], inertia[2]],
                    [inertia[1], inertia[3], inertia[4]],
                    [inertia[2], inertia[4], inertia[5]]])
 
+    print(f"eigenvalues and vectors:\n {np.linalg.eig(Ib)}")
+
+    w,v = np.linalg.eig(Ib)
+
+    np.set_printoptions(precision=7, suppress=True)
+    print(f"inertia: \n{Ib}")
+    print(f"inertia about rotated coords: \n{np.transpose(v) @ Ib @ v}")
+    
+    transformed_Ib = np.transpose(v) @ Ib @ v
+
     mI = mass*np.identity(3)
 
     zeros = np.zeros((3,3))
-    print(zeros)
-    print(Ib)
-    print(mI)
+    Gi = np.c_[np.r_[transformed_Ib, zeros], np.r_[zeros,mI]]
+    Glist.append(Gi)
 
-    Gi = np.c_[np.r_[Ib, zeros], np.r_[zeros,mI]]
-
-    print(np.round(Gi,5))
-
-
-    p = np.array([float(n) for n in link.inertial.inertia.split()])
+    print(f"Gi:\n{np.round(Gi,5)}")
