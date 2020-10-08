@@ -52,61 +52,71 @@ final = mr.FKinBody(T_ee, bodyList, angleList)
 # print(np.round(T_ee, 5))
 print(np.round(final,5))
 
-M = np.array([[-1, 0,  0, 0],
-                      [ 0, 1,  0, 6],
-                      [ 0, 0, -1, 2],
-                      [ 0, 0,  0, 1]])
-Blist = np.array([[0, 0, -1, 2, 0,   0],
-                          [0, 0,  0, 0, 1,   0],
-                          [0, 0,  1, 0, 0, 0.1]]).T
-thetalist = np.array([np.pi / 2.0, 3, np.pi])
-
 # inverse dynamics
 # need Glist, or spatial inertai matrix list
 #   6x6 matrix, top left corner is 3x3 rotational inertia matrix, bottom right is mass of link * identity matrix
-Glist = []
-
+GList = []
+np.set_printoptions(precision=7, suppress=True)
 for link in obj.robot.link[2:-2]: # need to skip type fixed
     mass = float(link.inertial.mass["value"])
 
+# got these values from solidworks, but have no idea why they are different than w,v
     # ix = [float(n) for n in link.inertial.origin["ix"].split()]
     # iy = [float(n) for n in link.inertial.origin["iy"].split()]
     # iz = [float(n) for n in link.inertial.origin["iz"].split()]
     # principle_axes = np.c_[ix,iy,iz]
 
-    CoM_xyz = [float(n) for n in link.inertial.origin["xyz"].split()]
+    # translate from parent joint to CoM 
+    # negative one b/c this is from parent link origin to CoM, but I need CoM to parent link origin
+    xyz_CoM= -1*np.array([float(n) for n in link.inertial.origin["xyz"].split()])
 
-    inertia = [float(n) for n in (vars(link.inertial.inertia)["_attributes"].values())]
+    # grab Ixx, Ixy, Ixz, Iyy, Iyz, Izz about the CoM, with the parent link coordinate systems
+    inertia_values_CoM = [float(n) for n in (vars(link.inertial.inertia_CoM)["_attributes"].values())]
     
-    Ib = np.array([[inertia[0], inertia[1], inertia[2]],
-                   [inertia[1], inertia[3], inertia[4]],
-                   [inertia[2], inertia[4], inertia[5]]])
+    # putting those values into a rotational inertia matrix, centered at CoM, using parent link coords
+    I_CoM = np.array([[inertia_values_CoM[0], inertia_values_CoM[1], inertia_values_CoM[2]],
+                      [inertia_values_CoM[1], inertia_values_CoM[3], inertia_values_CoM[4]],
+                      [inertia_values_CoM[2], inertia_values_CoM[4], inertia_values_CoM[5]]])
 
-    print(f"eigenvalues and vectors:\n {np.linalg.eig(Ib)}")
-
-    w,v = np.linalg.eig(Ib)
-
-    np.set_printoptions(precision=7, suppress=True)
-    print(f"inertia: \n{Ib}")
-    print(f"inertia about rotated coords: \n{np.transpose(v) @ Ib @ v}")
+    # grabbing the eigenvectors of the rotational inertia matrix, to find the principle axes of inertia
+    w,v = np.linalg.eig(I_CoM)
+    print(f"eigenvectors:\n {v}")  
+    print(f"inertia: \n{I_CoM}")
     
-    transformed_Ib = np.transpose(v) @ Ib @ v
+    # rotational inertia matrix, centered at CoM, aligned w/ principle axes of inertia
+    rotated_I_CoM = np.transpose(v) @ I_CoM @ v
+    print(f"inertia about rotated coords: \n{rotated_I_CoM}")
+    # rotational inertia matrix, centered at parent link origin, aligned w/ parent link origin coords
+    translated_T_CoM = I_CoM + mass*(np.inner(xyz_CoM, xyz_CoM)*np.identity(3) - np.outer(xyz_CoM, xyz_CoM))
+    print(f"inertial rotational matrix at parent link: \n{translated_T_CoM}")
 
+    # translated_T_CoM is pretty close to the value obtained from SOLIDWORKS
+    # inertia_values_joint = [float(n) for n in (vars(link.inertial.inertia_joint)["_attributes"].values())]
+    # I_joint = np.array([[inertia_values_joint[0], inertia_values_joint[1], inertia_values_joint[2]],
+    #                     [inertia_values_joint[1], inertia_values_joint[3], inertia_values_joint[4]],
+    #                     [inertia_values_joint[2], inertia_values_joint[4], inertia_values_joint[5]]])
+ 
     mI = mass*np.identity(3)
-
     zeros = np.zeros((3,3))
-    Gi = np.c_[np.r_[transformed_Ib, zeros], np.r_[zeros,mI]]
-    Glist.append(Gi)
+    Gi = np.c_[np.r_[rotated_I_CoM, zeros], np.r_[zeros,mI]]
+    GList.append(Gi)
 
     print(f"Gi:\n{np.round(Gi,5)}")
 
+print(TList)
 
-# says each reference frame {i} is attached to the CoM of each link i,i=1...n
-# base frame is denoted {0}
-# frame at end effector denoted {n+1} (i think this is link6)
+# crete a trajectory to follow using functions from Ch9
+theta_start = np.array([0,0,0,0,0,0])
+theta_end = np.array([0,-1*np.pi/2, np.pi/2, 0,0,0])
 
-# two ways to do things
-# use the link CoM, and convert screw axes, forces from referenced joint to referenced link
-# or, use the joint CoM, and use the bottom inertial values in the URDF
-
-# i will probably try both to see if i get the same result
+# final time
+T_final = 3
+N = 1000
+method = 5
+# use a joint trajectory to get from rest to home
+# then use a cartesian trajectory to get other places
+# create the trajectory, N x n matrix where each row is  n-vector of joint variables at an instant in time
+trajectory = mr.CartesianTrajectory(theta_start, theta_end, T_final, N, method)
+theta_matrix = np.array(trajectory).copy()
+d_theta_matrix = np.zeros((1000,3))
+dd_theta_matrix = np.zeros((1000,3))
